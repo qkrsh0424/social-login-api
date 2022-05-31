@@ -10,6 +10,8 @@ import javax.crypto.spec.SecretKeySpec;
 import javax.servlet.http.Cookie;
 import javax.xml.bind.DatatypeConverter;
 
+import com.social_login.api.domain.user.entity.UserEntity;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
@@ -24,29 +26,43 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Configuration
 public class AuthTokenUtils {
+    private static String accessTokenSecret;
+    private static String refreshTokenSecret;
 
     @Value("${app.jwt.access.secret}")
-    private String accessTokenSecret;
+    public void setAccessTokenSecret(String accessTokenSecret) {
+        AuthTokenUtils.accessTokenSecret = accessTokenSecret;
+    }
+
+    public static String getAccessTokenSecret() {
+        return accessTokenSecret;
+    }
 
     @Value("${app.jwt.refresh.secret}")
-    private String refreshTokenSecret;
+    public void setRefreshTokenSecret(String refreshTokenSecret) {
+        AuthTokenUtils.refreshTokenSecret = refreshTokenSecret;
+    }
 
-    public String getJwtAccessToken(UUID id, UUID refreshTokenId) {
+    public static String getRefreshTokenSecret() {
+        return refreshTokenSecret;
+    }
+
+    public static String getJwtAccessToken(UserEntity user, UUID refreshTokenId) {
         JwtBuilder builder = Jwts.builder()
             .setSubject("JWT_ACT")
             .setHeader(createHeader())
-            .setClaims(createClaims(id, refreshTokenId))
+            .setClaims(createClaims(user, refreshTokenId))
             .setExpiration(createTokenExpiration(CustomJwtInterface.JWT_TOKEN_EXPIRATION))
             .signWith(SignatureAlgorithm.HS256, createSigningKey(accessTokenSecret));
 
         return builder.compact();
     }
 
-    public String getJwtRefreshToken(UUID id) {
+    public static String getJwtRefreshToken(UserEntity user) {
         JwtBuilder builder = Jwts.builder()
             .setSubject("JWT_RFT")
             .setHeader(createHeader())
-            .setClaims(createRefreshTokenClaims(id))
+            .setClaims(createRefreshTokenClaims(user))
             .setExpiration(createTokenExpiration(CustomJwtInterface.REFRESH_TOKEN_JWT_EXPIRATION))
             .signWith(SignatureAlgorithm.HS256, createSigningKey(refreshTokenSecret));
         
@@ -54,7 +70,7 @@ public class AuthTokenUtils {
     }
     
     // JWT Header
-    private Map<String, Object> createHeader() {
+    private static Map<String, Object> createHeader() {
         Map<String, Object> header = new HashMap<>();
         header.put("typ", "JWT");
         header.put("alg", "HS256");
@@ -63,30 +79,36 @@ public class AuthTokenUtils {
     }
 
     // JWT Palyod
-    private Map<String, Object> createClaims(UUID id, UUID refreshTokenId) {
+    private static Map<String, Object> createClaims(UserEntity user, UUID refreshTokenId) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("id", id);
+        claims.put("id", user.getId());
+        claims.put("name", user.getName());
+        claims.put("username", user.getUsername());
+        claims.put("roles", user.getRoles());
         claims.put("refreshTokenId", refreshTokenId);
         return claims;
     }
 
-    private Map<String, Object> createRefreshTokenClaims(UUID id) {
+    private static Map<String, Object> createRefreshTokenClaims(UserEntity user) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("id", id);;
+        claims.put("id", user.getId());
+        claims.put("name", user.getName());
+        claims.put("username", user.getUsername());
+        claims.put("roles", user.getRoles());
         return claims;
     }
 
-    private Date createTokenExpiration(Integer expirationTime) {
+    private static Date createTokenExpiration(Integer expirationTime) {
         Date expiration = new Date(System.currentTimeMillis() + expirationTime);
         return expiration;
     }
 
-    private Key createSigningKey(String tokenSecret) {
+    private static Key createSigningKey(String tokenSecret) {
         byte[] apiKeySecretBytes = DatatypeConverter.parseBase64Binary(tokenSecret);
         return new SecretKeySpec(apiKeySecretBytes, SignatureAlgorithm.HS256.getJcaName()); 
     }
 
-    public boolean isValidToken(Cookie jwtCookie) {
+    public static boolean isValidToken(Cookie jwtCookie) {
         String accessToken = jwtCookie.getValue();
 
         try {

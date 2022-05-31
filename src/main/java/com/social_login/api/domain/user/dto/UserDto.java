@@ -9,10 +9,11 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.Accessors;
 
-@Getter
+@Getter @Setter
 @ToString
 @Accessors(chain = true)
 @AllArgsConstructor
@@ -22,10 +23,11 @@ public class UserDto {
     private UUID id;
     private String username;
     private String password;
-    private UUID salt;
+    private String salt;
     private String name;
     private String roles;
     private String snsType;
+    private String snsResponseId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

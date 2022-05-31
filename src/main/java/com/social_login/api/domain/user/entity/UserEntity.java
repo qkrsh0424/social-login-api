@@ -21,6 +21,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.Accessors;
 
@@ -49,7 +50,7 @@ public class UserEntity {
     private String password;
 
     @Column(name = "salt")
-    private UUID salt;
+    private String salt;
 
     @Column(name = "name")
     private String name;
@@ -59,6 +60,9 @@ public class UserEntity {
 
     @Column(name = "sns_type")
     private String snsType;
+
+    @Column(name = "sns_response_id")
+    private String snsResponseId;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -82,6 +86,7 @@ public class UserEntity {
             .name(dto.getName())
             .roles(dto.getRoles())
             .snsType(dto.getSnsType())
+            .snsResponseId(dto.getSnsResponseId())
             .createdAt(dto.getCreatedAt())
             .updatedAt(dto.getUpdatedAt())
             .build();

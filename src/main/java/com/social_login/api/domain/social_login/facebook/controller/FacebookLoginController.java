@@ -21,7 +21,7 @@ public class FacebookLoginController {
     private final FacebookLoginBusinessService facebookLoginBusinessService;
 
     @GetMapping("")
-    public void googleLogin(HttpServletResponse response,  @RequestParam Map<String, Object> params) throws ParseException {
+    public void facebookLogin(HttpServletResponse response,  @RequestParam Map<String, Object> params) throws ParseException {
         facebookLoginBusinessService.facebookLogin(response, params);
     }
 }
