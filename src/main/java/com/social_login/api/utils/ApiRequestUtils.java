@@ -35,6 +35,31 @@ public class ApiRequestUtils {
         }
     }
 
+    public static String post(String apiUrl, Map<String, String> requestHeaders){
+        HttpURLConnection con = connect(apiUrl);
+        try {
+            con.setDoInput(true);
+            con.setFixedLengthStreamingMode(0);
+            con.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+            con.setRequestMethod("POST");
+            con.setDoOutput(true);
+            for(Map.Entry<String, String> header :requestHeaders.entrySet()) {
+                con.setRequestProperty(header.getKey(), header.getValue());
+            }
+
+            int responseCode = con.getResponseCode();
+            if (responseCode == HttpURLConnection.HTTP_OK) { // 정상 호출
+                return readBody(con.getInputStream());
+            } else { // 에러 발생
+                return readBody(con.getErrorStream());
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("API 요청과 응답 실패", e);
+        } finally {
+            con.disconnect();
+        }
+    }
+
     public static HttpURLConnection connect(String apiUrl){
         try {
             URL url = new URL(apiUrl);

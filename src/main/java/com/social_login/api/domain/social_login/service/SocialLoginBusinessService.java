@@ -3,12 +3,12 @@ package com.social_login.api.domain.social_login.service;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 import javax.servlet.http.HttpServletResponse;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.social_login.api.config.social_login.SocialLoginConfiguration;
 import com.social_login.api.config.utils.AuthTokenUtils;
 import com.social_login.api.domain.message.Message;
 import com.social_login.api.domain.refresh_token.entity.RefreshTokenEntity;
@@ -35,6 +35,7 @@ import lombok.RequiredArgsConstructor;
 public class SocialLoginBusinessService {
     private final UserService userService;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final SocialLoginConfiguration socialLoginConfiguration;
 
     /**
      * Naver Login
@@ -44,20 +45,31 @@ public class SocialLoginBusinessService {
      * @throws ParseException
      */
     public void naverLogin(HttpServletResponse response, Map<String, Object> params) throws ParseException {
-        // 네이버 액세스토큰
+        // 네이버 액세스토큰(인가토큰)
         String token = params.get("token") != null ? params.get("token").toString() : "";
-        String header = "Bearer " + token;
 
-        // 네이버 유저 프로필조회 api
-        String apiURL = "https://openapi.naver.com/v1/nid/me";
-
+        // 네이버 인증 토큰 요청 api
         Map<String, String> requestHeaders = new HashMap<>();
-        requestHeaders.put("Authorization", header);
+        String apiURL = "https://nid.naver.com/oauth2.0/token?" 
+            + "grant_type=authorization_code"
+            + "&client_id=" + socialLoginConfiguration.getNaver().get("id")
+            + "&code=" + token
+            + "&client_secret=" + socialLoginConfiguration.getNaver().get("secret");
         String responseBody = ApiRequestUtils.get(apiURL, requestHeaders);
-
+        
         JSONParser parser = new JSONParser();
         Object obj = parser.parse(responseBody);
         JSONObject responseJson = (JSONObject) obj;
+
+        // 네이버 유저 프로필조회 api
+        apiURL = "https://openapi.naver.com/v1/nid/me";
+        
+        String header = "Bearer " + responseJson.get("access_token");
+        requestHeaders.put("Authorization", header);
+        responseBody = ApiRequestUtils.get(apiURL, requestHeaders);
+
+        obj = parser.parse(responseBody);
+        responseJson = (JSONObject) obj;
         JSONObject userInfoJson = (JSONObject) responseJson.get("response");
 
         UserEntity entity = UserEntity.builder()
@@ -96,19 +108,30 @@ public class SocialLoginBusinessService {
      * @throws ParseException
      */
     public void kakaoLogin(HttpServletResponse response, Map<String, Object> params) throws ParseException {
-        // 카카오 액세스토큰 
+        // 카카오 액세스토큰(인가토큰)
         String token = params.get("token") != null ? params.get("token").toString() : "";
-        String header = "Bearer " + token;
 
-        // 카카오 유저 프로필조회 api
-        String apiURL = "https://kapi.kakao.com/v2/user/me";
+        // 카카오 인증 토큰 요청 api
         Map<String, String> requestHeaders = new HashMap<>();
-        requestHeaders.put("Authorization", header);
+        String apiURL = "https://kauth.kakao.com/oauth/token?"
+             + "grant_type=authorization_code"
+             + "&client_id=" + socialLoginConfiguration.getKakao().get("id")
+             + "&code=" + token
+            + "&client_secret=" + socialLoginConfiguration.getKakao().get("secret");
         String responseBody = ApiRequestUtils.get(apiURL, requestHeaders);
-
+        
         JSONParser parser = new JSONParser();
         Object obj = parser.parse(responseBody);
         JSONObject responseJson = (JSONObject) obj;
+
+        // 카카오 유저 프로필조회 api
+        apiURL = "https://kapi.kakao.com/v2/user/me";
+        String header = "Bearer " + responseJson.get("access_token");
+        requestHeaders.put("Authorization", header);
+        responseBody = ApiRequestUtils.get(apiURL, requestHeaders);
+
+        obj = parser.parse(responseBody);
+        responseJson = (JSONObject) obj;
         JSONObject userInfoJson = (JSONObject) responseJson.get("kakao_account");
         JSONObject profileInfoJson = (JSONObject) userInfoJson.get("profile");
 
@@ -150,18 +173,32 @@ public class SocialLoginBusinessService {
     public void googleLogin(HttpServletResponse response, Map<String, Object> params) throws ParseException {
         // 구글 액세스토큰 
         String token = params.get("token") != null ? params.get("token").toString() : "";
-        String header = "Bearer " + token;
-
-        // 구글 유저 프로필조회 api
-        String apiURL = "https://www.googleapis.com/oauth2/v2/userinfo";
         
+        // 구글 인증 토큰 요청 api
         Map<String, String> requestHeaders = new HashMap<>();
-        requestHeaders.put("Authorization", header);
-        String responseBody = ApiRequestUtils.get(apiURL, requestHeaders);
+        String apiURL = "https://oauth2.googleapis.com/token?"
+            + "grant_type=authorization_code"
+            + "&client_id=" + socialLoginConfiguration.getGoogle().get("id")
+            + "&code=" + token
+            + "&client_secret=" + socialLoginConfiguration.getGoogle().get("secret")
+            + "&redirect_uri=" + socialLoginConfiguration.getGoogle().get("redirect")
+            + "&state=hihi";
 
+        String responseBody = ApiRequestUtils.post(apiURL, requestHeaders);
+        
         JSONParser parser = new JSONParser();
         Object obj = parser.parse(responseBody);
         JSONObject responseJson = (JSONObject) obj;
+
+        // 구글 유저 프로필조회 api
+        apiURL = "https://www.googleapis.com/oauth2/v2/userinfo";
+        
+        String header = "Bearer " + responseJson.get("access_token");
+        requestHeaders.put("Authorization", header);
+        responseBody = ApiRequestUtils.get(apiURL, requestHeaders);
+
+        obj = parser.parse(responseBody);
+        responseJson = (JSONObject) obj;
 
         UserEntity entity = UserEntity.builder()
             .id(UUID.randomUUID())
@@ -202,19 +239,32 @@ public class SocialLoginBusinessService {
         // 페이스북 액세스토큰 
         String token = params.get("token") != null ? params.get("token").toString() : "";
 
-        // 페이스북 인증토큰 발급
-        String apiURL = "https://graph.facebook.com/me?access_token=" + token;
-        String responseBody = ApiRequestUtils.get(apiURL, new HashMap<>());
+        // 페이스북 인증 토큰 요청 api
+        Map<String, String> requestHeaders = new HashMap<>();
+        String apiURL = "https://graph.facebook.com/v14.0/oauth/access_token?"
+            + "client_id=" + socialLoginConfiguration.getFacebook().get("id")
+            + "&redirect_uri=" + socialLoginConfiguration.getFacebook().get("redirect")
+            + "&code=" + token
+            + "&client_secret=" + socialLoginConfiguration.getFacebook().get("secret");
+        String responseBody = ApiRequestUtils.get(apiURL, requestHeaders);
+
         JSONParser parser = new JSONParser();
         Object obj = parser.parse(responseBody);
         JSONObject responseJson = (JSONObject) obj;
+
+        String authToken = responseJson.get("access_token").toString();
+        // 페이스북 유저 프로필조회 토큰 발급
+        apiURL = "https://graph.facebook.com/me?access_token=" + authToken;
+        responseBody = ApiRequestUtils.get(apiURL, new HashMap<>());
+        obj = parser.parse(responseBody);
+        responseJson = (JSONObject) obj;
         String USER_ID = responseJson.get("id").toString();
 
         // 페이스북 유저 프로필조회 api
-        String userInfoReqApiURL = "https://graph.facebook.com/" + USER_ID + "?fields=name,email&access_token=" + token;
-        responseBody = ApiRequestUtils.get(userInfoReqApiURL, new HashMap<>());
-        JSONParser parser2 = new JSONParser();
-        Object userInfo = parser2.parse(responseBody);
+        apiURL = "https://graph.facebook.com/" + USER_ID + "?fields=name,email&access_token=" + authToken;
+        responseBody = ApiRequestUtils.get(apiURL, new HashMap<>());
+        Object userInfo = parser.parse(responseBody);
+        System.out.println(userInfo);
         JSONObject userInfoJson = (JSONObject) userInfo;
 
         UserEntity entity = UserEntity.builder()

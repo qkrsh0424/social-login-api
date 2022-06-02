@@ -83,9 +83,7 @@ public class AuthTokenUtils {
     private static Map<String, Object> createClaims(UserEntity user, UUID refreshTokenId) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("id", user.getId());
-        claims.put("name", user.getName());
         claims.put("username", user.getUsername());
-        claims.put("roles", user.getRoles());
         claims.put("refreshTokenId", refreshTokenId);
         return claims;
     }
@@ -93,9 +91,7 @@ public class AuthTokenUtils {
     private static Map<String, Object> createRefreshTokenClaims(UserEntity user) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("id", user.getId());
-        claims.put("name", user.getName());
         claims.put("username", user.getUsername());
-        claims.put("roles", user.getRoles());
         return claims;
     }
 
@@ -107,26 +103,5 @@ public class AuthTokenUtils {
     private static Key createSigningKey(String tokenSecret) {
         byte[] apiKeySecretBytes = DatatypeConverter.parseBase64Binary(tokenSecret);
         return new SecretKeySpec(apiKeySecretBytes, SignatureAlgorithm.HS256.getJcaName()); 
-    }
-
-    public static boolean isValidToken(Cookie jwtCookie) {
-        String accessToken = jwtCookie.getValue();
-
-        try {
-            Claims claims = Jwts.parser().setSigningKey(accessTokenSecret).parseClaimsJws(accessToken).getBody();
-            log.info("expireTime :" + claims.getExpiration());
-            log.info("email :" + claims.get("email"));
-            log.info("roles :" + claims.get("roles"));
-            return true;
-        } catch (ExpiredJwtException exception) {
-            log.error("Token Expired");
-            return false;
-        } catch (JwtException exception) {
-            log.error("Token Tampered");
-            return false;
-        } catch (NullPointerException exception) {
-            log.error("Token is null");
-            return false;
-        }
     }
 }

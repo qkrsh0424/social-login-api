@@ -71,24 +71,4 @@ public class CsrfTokenUtils {
         byte[] apiKeySecretBytes = DatatypeConverter.parseBase64Binary(tokenSecret);
         return new SecretKeySpec(apiKeySecretBytes, SignatureAlgorithm.HS256.getJcaName()); 
     }
-
-    public static boolean isValidToken(Cookie csrfCookie) {
-
-        String csrfToken = csrfCookie.getValue();
-
-        try {
-            Claims claims = Jwts.parser().setSigningKey(csrfJwtSecret).parseClaimsJws(csrfToken).getBody();
-            log.info("expireTime :" + claims.getExpiration());
-            return true;
-        } catch (ExpiredJwtException exception) {
-            log.error("Token Expired");
-            return false;
-        } catch (JwtException exception) {
-            log.error("Token Tampered");
-            return false;
-        } catch (NullPointerException exception) {
-            log.error("Token is null");
-            return false;
-        }
-    }
 }

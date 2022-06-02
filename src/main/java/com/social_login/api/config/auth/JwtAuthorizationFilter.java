@@ -99,15 +99,11 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
                         }
 
                         UUID id = UUID.fromString(refreshTokenClaims.get("id").toString());
-                        String name = refreshTokenClaims.get("name").toString();
                         String username = refreshTokenClaims.get("username").toString();
-                        String roles = refreshTokenClaims.get("roles").toString();
 
                         UserEntity user = UserEntity.builder()
                             .id(id)
-                            .name(name)
                             .username(username)
-                            .roles(roles)
                             .build();
 
                         // 새로운 액세스 토큰 발급
@@ -126,9 +122,7 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
 
                         UserEntity userEntity = UserEntity.builder()
                             .id(id)
-                            .name(name)
                             .username(username)
-                            .roles(roles)
                             .build();
                         
                         this.saveAuthenticationToSecurityContextHolder(userEntity);
@@ -138,15 +132,11 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
                 }
 
                 UUID id = UUID.fromString(claims.get("id").toString());
-                String name = claims.get("name").toString();
                 String username = claims.get("username").toString();
-                String roles = claims.get("roles").toString();
 
                 UserEntity userEntity = UserEntity.builder()
                         .id(id)
-                        .name(name)
                         .username(username)
-                        .roles(roles)
                         .build();
                 this.saveAuthenticationToSecurityContextHolder(userEntity);
 
@@ -157,8 +147,8 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
         PrincipalDetails principalDetails = new PrincipalDetails(userEntity);
 
         // Jwt 토큰 서명을 통해서 서명이 정상이면 Authentication 객체를 만들어준다.
-        Authentication authentication = new UsernamePasswordAuthenticationToken(principalDetails, null,
-                principalDetails.getAuthorities());
+        // Authentication authentication = new UsernamePasswordAuthenticationToken(principalDetails, null, principalDetails.getAuthorities());
+        Authentication authentication = new UsernamePasswordAuthenticationToken(principalDetails, null, null);
 
         // 강제로 시큐리티의 세션에 접근하여 Authentication 객체를 저장.
         SecurityContextHolder.getContext().setAuthentication(authentication);
