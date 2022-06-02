@@ -5,7 +5,6 @@ import java.util.Optional;
 import com.social_login.api.domain.user.entity.UserEntity;
 import com.social_login.api.domain.user.repository.UserRepository;
 
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;

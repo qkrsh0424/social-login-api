@@ -10,10 +10,10 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.social_login.api.config.utils.AuthTokenUtils;
 import com.social_login.api.domain.refresh_token.entity.RefreshTokenEntity;
 import com.social_login.api.domain.refresh_token.repository.RefreshTokenRepository;
 import com.social_login.api.domain.user.entity.UserEntity;
-import com.social_login.api.utils.AuthTokenUtils;
 import com.social_login.api.utils.CustomCookieInterface;
 
 import org.springframework.http.HttpHeaders;

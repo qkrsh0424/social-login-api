@@ -10,11 +10,11 @@ import javax.servlet.http.HttpServletResponse;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.social_login.api.config.exception.AuthenticationMethodNotAllowedException;
+import com.social_login.api.config.utils.AuthTokenUtils;
 import com.social_login.api.domain.message.Message;
 import com.social_login.api.domain.refresh_token.entity.RefreshTokenEntity;
 import com.social_login.api.domain.refresh_token.repository.RefreshTokenRepository;
 import com.social_login.api.domain.user.entity.UserEntity;
-import com.social_login.api.utils.AuthTokenUtils;
 import com.social_login.api.utils.CustomCookieInterface;
 import com.social_login.api.utils.CustomDateUtils;
 

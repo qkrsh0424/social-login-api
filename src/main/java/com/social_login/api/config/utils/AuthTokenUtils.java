@@ -1,4 +1,4 @@
-package com.social_login.api.utils;
+package com.social_login.api.config.utils;
 
 import java.security.Key;
 import java.util.Date;
@@ -11,6 +11,7 @@ import javax.servlet.http.Cookie;
 import javax.xml.bind.DatatypeConverter;
 
 import com.social_login.api.domain.user.entity.UserEntity;
+import com.social_login.api.utils.CustomJwtInterface;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
@@ -30,7 +31,7 @@ public class AuthTokenUtils {
     private static String refreshTokenSecret;
 
     @Value("${app.jwt.access.secret}")
-    public void setAccessTokenSecret(String accessTokenSecret) {
+    private void setAccessTokenSecret(String accessTokenSecret) {
         AuthTokenUtils.accessTokenSecret = accessTokenSecret;
     }
 
@@ -39,7 +40,7 @@ public class AuthTokenUtils {
     }
 
     @Value("${app.jwt.refresh.secret}")
-    public void setRefreshTokenSecret(String refreshTokenSecret) {
+    private void setRefreshTokenSecret(String refreshTokenSecret) {
         AuthTokenUtils.refreshTokenSecret = refreshTokenSecret;
     }
 

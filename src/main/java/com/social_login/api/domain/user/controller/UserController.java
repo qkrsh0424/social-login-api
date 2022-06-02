@@ -8,6 +8,7 @@ import com.social_login.api.domain.user.entity.UserEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -22,8 +23,11 @@ public class UserController {
         UserDto userDto = new UserDto();
 
         // Security Filter 에서 넘어오는 SecurityContextHolder 를 읽어서 유저상태를 검사한다.
-        if (!(SecurityContextHolder.getContext().getAuthentication().getName() == null ||
-                SecurityContextHolder.getContext().getAuthentication().getName() .equals("anonymousUser"))) {
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    
+        // 로그인 유저 - UserDetails타입
+        // 비로그인 유저 - String타입("anonymousUser")
+        if(principal instanceof UserDetails) {
             PrincipalDetails pd = (PrincipalDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
             UserEntity userEntity = pd.getUser();
             userDto.setId(userEntity.getId());

@@ -34,9 +34,14 @@ public class UserService {
         return userEntityOpt.isPresent();
     }
 
-    public boolean isDuplicatedUserBySnsTypeAndSnsResponseId(String snsType, String snsResponseId) {
+    public UserEntity searchDuplicatedUserBySnsTypeAndSnsResponseId(String snsType, String snsResponseId) {
         Optional<UserEntity> userEntityOpt = userRepository.findBySnsTypeAndSnsResponseId(snsType, snsResponseId);
-        return userEntityOpt.isPresent();
+        
+        if(userEntityOpt.isPresent()) {
+            return userEntityOpt.get();
+        }else{
+            return null;
+        }
     }
     
 }
