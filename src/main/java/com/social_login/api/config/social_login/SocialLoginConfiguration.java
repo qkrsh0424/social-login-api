@@ -12,6 +12,7 @@ public class SocialLoginConfiguration {
     private Map<String, String> kakao;
     private Map<String, String> google;
     private Map<String, String> facebook;
+    private String state;
 
     public Map<String, String> getNaver() {
         return naver;
@@ -36,5 +37,11 @@ public class SocialLoginConfiguration {
     }
     public void setFacebook(Map<String, String> facebook) {
         this.facebook = facebook;
-    }    
+    }
+    public String getState() {
+        return state;
+    }
+    public void setState(String state) {
+        this.state = state;
+    }
 }

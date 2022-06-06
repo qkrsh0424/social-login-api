@@ -118,18 +118,38 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
     @Override
     protected void unsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response,
             AuthenticationException failed) throws IOException, ServletException {
-                Message message = new Message();
-                message.setMessage("login_error");
-                message.setStatus(HttpStatus.UNAUTHORIZED);
-                message.setMemo("username not exist or password not matched.");
 
-                ObjectMapper om = new ObjectMapper();
-                String oms = om.writeValueAsString(message);
+        Object exceptionClass = failed.getClass();
+        if (exceptionClass.equals(AuthenticationMethodNotAllowedException.class)) {
+            String msg = errorMessage(HttpStatus.METHOD_NOT_ALLOWED, "method_not_allowed", failed.getMessage());
+            response.setStatus(HttpStatus.METHOD_NOT_ALLOWED.value());
+            response.setContentType(MediaType.APPLICATION_JSON.toString());
+            response.getWriter().write(msg);
+            response.getWriter().flush();
+            return;
+        }
 
-                response.setStatus(message.getStatus().value());
-                response.setContentType(MediaType.APPLICATION_JSON.toString());
-                response.getWriter().write(oms);
-                response.getWriter().flush();
+        Message message = new Message();
+        message.setMessage("login_error");
+        message.setStatus(HttpStatus.UNAUTHORIZED);
+        message.setMemo("username not exist or password not matched.");
+
+        ObjectMapper om = new ObjectMapper();
+        String oms = om.writeValueAsString(message);
+
+        response.setStatus(message.getStatus().value());
+        response.setContentType(MediaType.APPLICATION_JSON.toString());
+        response.getWriter().write(oms);
+        response.getWriter().flush();
         super.unsuccessfulAuthentication(request, response, failed);
+    }
+
+    private String errorMessage(HttpStatus status, String errorMessage, String errorMemo) throws IOException {
+        Message message = new Message();
+
+        message.setStatus(status);
+        message.setMessage(errorMessage);
+        message.setMemo(errorMemo);
+        return new ObjectMapper().writeValueAsString(message);
     }
 }

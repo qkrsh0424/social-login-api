@@ -11,6 +11,8 @@ import java.util.Map;
 
 import org.springframework.context.annotation.Configuration;
 
+import com.social_login.api.domain.exception.CustomApiResponseException;
+
 @Configuration
 public class ApiRequestUtils {
 
@@ -29,7 +31,7 @@ public class ApiRequestUtils {
                 return readBody(con.getErrorStream());
             }
         } catch (IOException e) {
-            throw new RuntimeException("API 요청과 응답 실패", e);
+            throw new CustomApiResponseException("API 요청과 응답 실패", e);
         } finally {
             con.disconnect();
         }
@@ -39,8 +41,8 @@ public class ApiRequestUtils {
         HttpURLConnection con = connect(apiUrl);
         try {
             con.setDoInput(true);
-            con.setFixedLengthStreamingMode(0);
-            con.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+            con.setFixedLengthStreamingMode(0);     // TODO :: 점검해야 함
+            con.setRequestProperty("Content-Type", "application/x-www-form-urlencoded;charset=utf-8");
             con.setRequestMethod("POST");
             con.setDoOutput(true);
             for(Map.Entry<String, String> header :requestHeaders.entrySet()) {
@@ -54,7 +56,7 @@ public class ApiRequestUtils {
                 return readBody(con.getErrorStream());
             }
         } catch (IOException e) {
-            throw new RuntimeException("API 요청과 응답 실패", e);
+            throw new CustomApiResponseException("API 요청과 응답 실패", e);
         } finally {
             con.disconnect();
         }
@@ -65,9 +67,9 @@ public class ApiRequestUtils {
             URL url = new URL(apiUrl);
             return (HttpURLConnection)url.openConnection();
         } catch (MalformedURLException e) {
-            throw new RuntimeException("API URL이 잘못되었습니다. : " + apiUrl, e);
+            throw new CustomApiResponseException("API URL이 잘못되었습니다. : " + apiUrl, e);
         } catch (IOException e) {
-            throw new RuntimeException("연결이 실패했습니다. : " + apiUrl, e);
+            throw new CustomApiResponseException("연결이 실패했습니다. : " + apiUrl, e);
         }
     }
 
@@ -85,7 +87,7 @@ public class ApiRequestUtils {
 
             return responseBody.toString();
         } catch (IOException e) {
-            throw new RuntimeException("API 응답을 읽는데 실패했습니다.", e);
+            throw new CustomApiResponseException("API 응답을 읽는데 실패했습니다.", e);
         }
     }
 }

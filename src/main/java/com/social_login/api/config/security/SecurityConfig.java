@@ -5,6 +5,7 @@ import com.social_login.api.config.auth.JwtAuthenticationProvider;
 import com.social_login.api.config.auth.JwtAuthorizationFilter;
 import com.social_login.api.config.auth.PrincipalDetailsService;
 import com.social_login.api.config.csrf.CsrfAuthenticationFilter;
+import com.social_login.api.config.exception.SecurityExceptionHandlerFilter;
 import com.social_login.api.config.referer.RefererAuthenticationFilter;
 import com.social_login.api.domain.refresh_token.repository.RefreshTokenRepository;
 
@@ -48,10 +49,11 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
             .permitAll()
             .anyRequest().denyAll();
         http
-            .addFilterBefore(new RefererAuthenticationFilter(), JwtAuthenticationFilter.class)
-            .addFilterAfter(new CsrfAuthenticationFilter(), RefererAuthenticationFilter.class)
-            .addFilterBefore(new JwtAuthorizationFilter(refreshTokenRepository), JwtAuthenticationFilter.class)
-            .addFilterAfter(new JwtAuthenticationFilter(authenticationManager(), refreshTokenRepository), JwtAuthorizationFilter.class);
+                .addFilterBefore(new RefererAuthenticationFilter(), JwtAuthenticationFilter.class)
+                .addFilterAfter(new CsrfAuthenticationFilter(), RefererAuthenticationFilter.class)
+                .addFilterBefore(new JwtAuthorizationFilter(refreshTokenRepository), JwtAuthenticationFilter.class)
+                .addFilterAfter(new JwtAuthenticationFilter(authenticationManager(), refreshTokenRepository),JwtAuthorizationFilter.class)
+                .addFilterBefore(new SecurityExceptionHandlerFilter(), RefererAuthenticationFilter.class);
     }
 
     @Bean

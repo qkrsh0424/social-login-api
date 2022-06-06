@@ -32,16 +32,16 @@ public class RefererAuthenticationFilter extends OncePerRequestFilter {
                 }
 
                 String referer = null;
+                Matcher match = null;
                 try {
                     referer = request.getHeader("Referer") != null ? request.getHeader("Referer") : null;
+                    String regex = "(http|https)?:\\/\\/(localhost|(w{1,3})?.([^\\s.]*(?:\\.[a-z]+)))*(?::\\d+)?(?![^<]*(?:<\\/\\w+>|\\/?>))";
+                    match = Pattern.compile(regex).matcher(referer);
                 } catch (NullPointerException e) {
                     throw new RefererException("Referer not found.");
                 } catch (IllegalStateException e) {
                     throw new RefererException("Referer not allowed.");
                 }
-
-                String regex = "(http|https)?:\\/\\/(localhost|(w{1,3})?.([^\\s.]*(?:\\.[a-z]+)))*(?::\\d+)?(?![^<]*(?:<\\/\\w+>|\\/?>))";
-                Matcher match = Pattern.compile(regex).matcher(referer);
 
                 if (!match.find()) {
                     // 올바른 url 패턴이 아닌경우

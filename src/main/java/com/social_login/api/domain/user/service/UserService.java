@@ -2,6 +2,7 @@ package com.social_login.api.domain.user.service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import com.social_login.api.domain.exception.CustomNotMatchedFormatException;
 import com.social_login.api.domain.user.entity.UserEntity;
@@ -24,10 +25,20 @@ public class UserService {
         userRepository.save(entity);
     }
 
+    public UserEntity findById(UUID id) {
+        Optional<UserEntity> userEntityOpt = userRepository.findById(id);
+        
+        if(userEntityOpt.isPresent()) {
+            return userEntityOpt.get();
+        }else{
+            throw new NullPointerException();
+        }
+    }
+
     // 아이디 중복 체크
     public boolean isDuplicatedUsername(String username) {
         if (username == null) {
-            throw new CustomNotMatchedFormatException("아이디 정보를 입력해 주세요.");
+            throw new CustomNotMatchedFormatException("아이디를 입력해 주세요.");
         }
 
         Optional<UserEntity> userEntityOpt = userRepository.findByUsernameAndSnsType(username, "piaar");

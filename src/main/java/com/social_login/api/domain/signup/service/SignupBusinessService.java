@@ -25,7 +25,7 @@ public class SignupBusinessService {
             throw new CustomConflictErrorException("중복된 아이디입니다. 수정 후 다시 시도해주세요.");
         }
 
-        // TODO :: 비밀번호, 비밀번호확인 동일한지 체크
+        // 비밀번호, 비밀번호 확인 값 검사
         if(!signupDto.getPassword().equals(signupDto.getPasswordCheck())) {
             throw new CustomConflictErrorException("패스워드 불일치.");
         }

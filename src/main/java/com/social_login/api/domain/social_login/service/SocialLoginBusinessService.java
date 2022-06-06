@@ -10,6 +10,7 @@ import javax.servlet.http.HttpServletResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.social_login.api.config.social_login.SocialLoginConfiguration;
 import com.social_login.api.config.utils.AuthTokenUtils;
+import com.social_login.api.domain.exception.CustomApiResponseException;
 import com.social_login.api.domain.message.Message;
 import com.social_login.api.domain.refresh_token.entity.RefreshTokenEntity;
 import com.social_login.api.domain.refresh_token.repository.RefreshTokenRepository;
@@ -42,62 +43,76 @@ public class SocialLoginBusinessService {
      * 
      * @param response
      * @param params
+     * @throws IOException
      * @throws ParseException
      */
-    public void naverLogin(HttpServletResponse response, Map<String, Object> params) throws ParseException {
+    public void naverLogin(HttpServletResponse response, Map<String, Object> params) throws IOException {
         // 네이버 액세스토큰(인가토큰)
         String token = params.get("token") != null ? params.get("token").toString() : "";
+        String USERNAME = null;
+        String NAME = null;
+        String SNS_RESPONSE_ID = null;
 
-        // 네이버 인증 토큰 요청 api
-        Map<String, String> requestHeaders = new HashMap<>();
-        String apiURL = "https://nid.naver.com/oauth2.0/token?" 
-            + "grant_type=authorization_code"
-            + "&client_id=" + socialLoginConfiguration.getNaver().get("id")
-            + "&code=" + token
-            + "&client_secret=" + socialLoginConfiguration.getNaver().get("secret");
-        String responseBody = ApiRequestUtils.get(apiURL, requestHeaders);
-        
-        JSONParser parser = new JSONParser();
-        Object obj = parser.parse(responseBody);
-        JSONObject responseJson = (JSONObject) obj;
+        try {
+            // 네이버 인증 토큰 요청 api
+            // Required Variable : grant_type, client_id, client_secret, code, state
+            Map<String, String> requestHeaders = new HashMap<>();
+            String apiURL = "https://nid.naver.com/oauth2.0/token"
+                    + "?grant_type=authorization_code"
+                    + "&client_id=" + socialLoginConfiguration.getNaver().get("id")
+                    + "&client_secret=" + socialLoginConfiguration.getNaver().get("secret")
+                    + "&code=" + token
+                    + "&state=" + socialLoginConfiguration.getState();
+            String responseBody = ApiRequestUtils.get(apiURL, requestHeaders);
 
-        // 네이버 유저 프로필조회 api
-        apiURL = "https://openapi.naver.com/v1/nid/me";
-        
-        String header = "Bearer " + responseJson.get("access_token");
-        requestHeaders.put("Authorization", header);
-        responseBody = ApiRequestUtils.get(apiURL, requestHeaders);
+            JSONParser parser = new JSONParser();
+            JSONObject responseJson = new JSONObject();
+            JSONObject userInfoJson = new JSONObject();
+            Object obj = parser.parse(responseBody);
+            responseJson = (JSONObject) obj;
 
-        obj = parser.parse(responseBody);
-        responseJson = (JSONObject) obj;
-        JSONObject userInfoJson = (JSONObject) responseJson.get("response");
+            // 네이버 유저 프로필조회 api
+            // Requried Header : Authorization Bearer ${ACCESS_TOKEN}
+            apiURL = "https://openapi.naver.com/v1/nid/me";
+            String authToken = responseJson.get("access_token").toString();
+            String header = "Bearer " + authToken;
+            requestHeaders.put("Authorization", header);
+            responseBody = ApiRequestUtils.get(apiURL, requestHeaders);
+
+            obj = parser.parse(responseBody);
+            responseJson = (JSONObject) obj;
+            userInfoJson = (JSONObject) responseJson.get("response");
+
+            USERNAME = userInfoJson.get("email").toString();
+            NAME = userInfoJson.get("name").toString();
+            SNS_RESPONSE_ID = userInfoJson.get("id").toString();
+        } catch (ParseException e) {
+            throw new CustomApiResponseException("요청 응답이 올바르지 않습니다.");
+        }
 
         UserEntity entity = UserEntity.builder()
-            .id(UUID.randomUUID())
-            .username(userInfoJson.get("email").toString())
-            .name(userInfoJson.get("name").toString())
-            .roles("ROLE_USER")
-            .snsType("naver")
-            .snsResponseId(userInfoJson.get("id").toString())
-            .createdAt(CustomDateUtils.getCurrentDateTime())
-            .updatedAt(CustomDateUtils.getCurrentDateTime())
-            .build();
-        
+                .id(UUID.randomUUID())
+                .username(USERNAME)
+                .name(NAME)
+                .roles("ROLE_USER")
+                .snsType("naver")
+                .snsResponseId(SNS_RESPONSE_ID)
+                .createdAt(CustomDateUtils.getCurrentDateTime())
+                .updatedAt(CustomDateUtils.getCurrentDateTime())
+                .build();
+                
         UserEntity duplicatedUser = userService.searchDuplicatedUserBySnsTypeAndSnsResponseId("naver", entity.getSnsResponseId());
-
         // sns_type이 naver면서, sns_response_id와 동일한 값이 존재하지 않는다면 회원가입
-        if(duplicatedUser  == null) {
+        if (duplicatedUser == null) {
             userService.saveAndModify(entity);
-        }else {
+        } else {
             entity = duplicatedUser;
         }
 
-        try {
-            this.createAccessToken(response, entity);
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+        // 우리 사이트 access token, refresh token 생성
+        UUID refreshTokenId = UUID.randomUUID();
+        this.createAccessToken(response, entity, refreshTokenId);
+        this.createRefreshToken(entity, refreshTokenId);
     }
 
     /**
@@ -105,47 +120,63 @@ public class SocialLoginBusinessService {
      * 
      * @param response
      * @param params
+     * @throws IOException
      * @throws ParseException
      */
-    public void kakaoLogin(HttpServletResponse response, Map<String, Object> params) throws ParseException {
+    public void kakaoLogin(HttpServletResponse response, Map<String, Object> params) throws IOException {
         // 카카오 액세스토큰(인가토큰)
         String token = params.get("token") != null ? params.get("token").toString() : "";
-
-        // 카카오 인증 토큰 요청 api
-        Map<String, String> requestHeaders = new HashMap<>();
-        String apiURL = "https://kauth.kakao.com/oauth/token?"
-             + "grant_type=authorization_code"
-             + "&client_id=" + socialLoginConfiguration.getKakao().get("id")
-             + "&code=" + token
-            + "&client_secret=" + socialLoginConfiguration.getKakao().get("secret");
-        String responseBody = ApiRequestUtils.get(apiURL, requestHeaders);
+        String USERNAME = null;
+        String NAME = null;
+        String SNS_RESPONSE_ID = null;
         
-        JSONParser parser = new JSONParser();
-        Object obj = parser.parse(responseBody);
-        JSONObject responseJson = (JSONObject) obj;
+        try {
+            // 카카오 인증 토큰 요청 api
+            // Required Variable : grant_type, client_id, redirect_uri, code, client_secret
+            Map<String, String> requestHeaders = new HashMap<>();
+            String apiURL = "https://kauth.kakao.com/oauth/token"
+                    + "?grant_type=authorization_code"
+                    + "&client_id=" + socialLoginConfiguration.getKakao().get("id")
+                    + "&code=" + token
+                    + "&client_secret=" + socialLoginConfiguration.getKakao().get("secret");
+            String responseBody = ApiRequestUtils.post(apiURL, requestHeaders);
 
-        // 카카오 유저 프로필조회 api
-        apiURL = "https://kapi.kakao.com/v2/user/me";
-        String header = "Bearer " + responseJson.get("access_token");
-        requestHeaders.put("Authorization", header);
-        responseBody = ApiRequestUtils.get(apiURL, requestHeaders);
+            JSONParser parser = new JSONParser();
+            JSONObject responseJson = new JSONObject();
+            Object obj = parser.parse(responseBody);
+            responseJson = (JSONObject) obj;
 
-        obj = parser.parse(responseBody);
-        responseJson = (JSONObject) obj;
-        JSONObject userInfoJson = (JSONObject) responseJson.get("kakao_account");
-        JSONObject profileInfoJson = (JSONObject) userInfoJson.get("profile");
+            // 카카오 유저 프로필조회 api
+            // Requried Header : Authorization Bearer ${ACCESS_TOKEN}
+            apiURL = "https://kapi.kakao.com/v2/user/me";
+            String authToken = responseJson.get("access_token").toString();
+            String header = "Bearer " + authToken;
+            requestHeaders.put("Authorization", header);
+            responseBody = ApiRequestUtils.get(apiURL, requestHeaders);
+
+            obj = parser.parse(responseBody);
+            responseJson = (JSONObject) obj;
+            JSONObject userInfoJson = (JSONObject) responseJson.get("kakao_account");
+            JSONObject profileInfoJson = (JSONObject) userInfoJson.get("profile");
+
+            USERNAME = userInfoJson.get("email").toString();
+            NAME = profileInfoJson.get("nickname").toString();
+            SNS_RESPONSE_ID = responseJson.get("id").toString();
+        } catch (ParseException e) {
+            throw new CustomApiResponseException("요청 응답이 올바르지 않습니다.");
+        }
 
         UserEntity entity = UserEntity.builder()
-            .id(UUID.randomUUID())
-            .username(userInfoJson.get("email").toString())
-            .name(profileInfoJson.get("nickname").toString())
-            .roles("ROLE_USER")
-            .snsType("kakao")
-            .snsResponseId(responseJson.get("id").toString())
-            .createdAt(CustomDateUtils.getCurrentDateTime())
-            .updatedAt(CustomDateUtils.getCurrentDateTime())
-            .build();
-        
+                .id(UUID.randomUUID())
+                .username(USERNAME)
+                .name(NAME)
+                .roles("ROLE_USER")
+                .snsType("kakao")
+                .snsResponseId(SNS_RESPONSE_ID)
+                .createdAt(CustomDateUtils.getCurrentDateTime())
+                .updatedAt(CustomDateUtils.getCurrentDateTime())
+                .build();
+
         UserEntity duplicatedUser = userService.searchDuplicatedUserBySnsTypeAndSnsResponseId("kakao", entity.getSnsResponseId());
 
         // sns_type이 kakao면서, sns_response_id와 동일한 값이 존재하지 않는다면 회원가입
@@ -155,12 +186,10 @@ public class SocialLoginBusinessService {
             entity = duplicatedUser;
         }
 
-        try {
-            this.createAccessToken(response, entity);
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+        // 우리 사이트 access token, refresh token 생성
+        UUID refreshTokenId = UUID.randomUUID();
+        this.createAccessToken(response, entity, refreshTokenId);
+        this.createRefreshToken(entity, refreshTokenId);
     }
 
     /**
@@ -169,44 +198,58 @@ public class SocialLoginBusinessService {
      * @param response
      * @param params
      * @throws ParseException
+     * @throws IOException
      */
-    public void googleLogin(HttpServletResponse response, Map<String, Object> params) throws ParseException {
-        // 구글 액세스토큰 
+    public void googleLogin(HttpServletResponse response, Map<String, Object> params) throws IOException {
+        // 구글 액세스토큰
         String token = params.get("token") != null ? params.get("token").toString() : "";
-        
-        // 구글 인증 토큰 요청 api
-        Map<String, String> requestHeaders = new HashMap<>();
-        String apiURL = "https://oauth2.googleapis.com/token?"
-            + "grant_type=authorization_code"
-            + "&client_id=" + socialLoginConfiguration.getGoogle().get("id")
-            + "&code=" + token
-            + "&client_secret=" + socialLoginConfiguration.getGoogle().get("secret")
-            + "&redirect_uri=" + socialLoginConfiguration.getGoogle().get("redirect")
-            + "&state=hihi";
+        String USERNAME = null;
+        String NAME = null;
+        String SNS_RESPONSE_ID = null;
 
-        String responseBody = ApiRequestUtils.post(apiURL, requestHeaders);
-        
-        JSONParser parser = new JSONParser();
-        Object obj = parser.parse(responseBody);
-        JSONObject responseJson = (JSONObject) obj;
+        try {
+            // 구글 인증 토큰 요청 api
+            // Required Variable : client_id, client_secret, code, grant_type, redirect_uri
+            Map<String, String> requestHeaders = new HashMap<>();
+            String apiURL = "https://oauth2.googleapis.com/token"
+                    + "?client_id=" + socialLoginConfiguration.getGoogle().get("id")
+                    + "&client_secret=" + socialLoginConfiguration.getGoogle().get("secret")
+                    + "&code=" + token
+                    + "&grant_type=authorization_code"
+                    + "&redirect_uri=" + socialLoginConfiguration.getGoogle().get("redirect");
 
-        // 구글 유저 프로필조회 api
-        apiURL = "https://www.googleapis.com/oauth2/v2/userinfo";
-        
-        String header = "Bearer " + responseJson.get("access_token");
-        requestHeaders.put("Authorization", header);
-        responseBody = ApiRequestUtils.get(apiURL, requestHeaders);
+            String responseBody = ApiRequestUtils.post(apiURL, requestHeaders);
 
-        obj = parser.parse(responseBody);
-        responseJson = (JSONObject) obj;
+            JSONParser parser = new JSONParser();
+            JSONObject responseJson = new JSONObject();
+            Object obj = parser.parse(responseBody);
+            responseJson = (JSONObject) obj;
+
+            // 구글 유저 프로필조회 api
+            // Requried Header : Authorization Bearer ${ACCESS_TOKEN}
+            apiURL = "https://www.googleapis.com/oauth2/v2/userinfo";
+            String authToken = responseJson.get("access_token").toString();
+            String header = "Bearer " + authToken;
+            requestHeaders.put("Authorization", header);
+            responseBody = ApiRequestUtils.get(apiURL, requestHeaders);
+
+            obj = parser.parse(responseBody);
+            responseJson = (JSONObject) obj;
+
+            USERNAME = responseJson.get("email").toString();
+            NAME = responseJson.get("name").toString();
+            SNS_RESPONSE_ID = responseJson.get("id").toString();
+        } catch (ParseException e) {
+            throw new CustomApiResponseException("요청 응답이 올바르지 않습니다.");
+        }
 
         UserEntity entity = UserEntity.builder()
             .id(UUID.randomUUID())
-            .username(responseJson.get("email").toString())
-            .name(responseJson.get("name").toString())
+            .username(USERNAME)
+            .name(NAME)
             .roles("ROLE_USER")
             .snsType("google")
-            .snsResponseId(responseJson.get("id").toString())
+            .snsResponseId(SNS_RESPONSE_ID)
             .createdAt(CustomDateUtils.getCurrentDateTime())
             .updatedAt(CustomDateUtils.getCurrentDateTime())
             .build();
@@ -220,12 +263,10 @@ public class SocialLoginBusinessService {
             entity = duplicatedUser;
         }
         
-        try {
-            this.createAccessToken(response, entity);
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+        // 우리 사이트 access token, refresh token 생성
+        UUID refreshTokenId = UUID.randomUUID();
+        this.createAccessToken(response, entity, refreshTokenId);
+        this.createRefreshToken(entity, refreshTokenId);
     }
 
     /**
@@ -234,50 +275,71 @@ public class SocialLoginBusinessService {
      * @param response
      * @param params
      * @throws ParseException
+     * @throws IOException
      */
-    public void facebookLogin(HttpServletResponse response, Map<String, Object> params) throws ParseException {
+    public void facebookLogin(HttpServletResponse response, Map<String, Object> params) throws IOException {
         // 페이스북 액세스토큰 
         String token = params.get("token") != null ? params.get("token").toString() : "";
+        String USERNAME = null;
+        String NAME = null;
+        String SNS_RESPONSE_ID = null;
 
-        // 페이스북 인증 토큰 요청 api
-        Map<String, String> requestHeaders = new HashMap<>();
-        String apiURL = "https://graph.facebook.com/v14.0/oauth/access_token?"
-            + "client_id=" + socialLoginConfiguration.getFacebook().get("id")
-            + "&redirect_uri=" + socialLoginConfiguration.getFacebook().get("redirect")
-            + "&code=" + token
-            + "&client_secret=" + socialLoginConfiguration.getFacebook().get("secret");
-        String responseBody = ApiRequestUtils.get(apiURL, requestHeaders);
+        try {
+            // 페이스북 인증 토큰 요청 api
+            // Required Variable : client_id, redirect_uri, client_secret, code
+            Map<String, String> requestHeaders = new HashMap<>();
+            String apiURL = "https://graph.facebook.com/v14.0/oauth/access_token"
+                    + "?client_id=" + socialLoginConfiguration.getFacebook().get("id")
+                    + "&redirect_uri=" + socialLoginConfiguration.getFacebook().get("redirect")
+                    + "&client_secret=" + socialLoginConfiguration.getFacebook().get("secret")
+                    + "&code=" + token;
+            String responseBody = ApiRequestUtils.get(apiURL, requestHeaders);
 
-        JSONParser parser = new JSONParser();
-        Object obj = parser.parse(responseBody);
-        JSONObject responseJson = (JSONObject) obj;
+            JSONParser parser = new JSONParser();
+            JSONObject responseJson = new JSONObject();
+            JSONObject userInfoJson = new JSONObject();
+            Object obj = parser.parse(responseBody);
+            responseJson = (JSONObject) obj;
 
-        String authToken = responseJson.get("access_token").toString();
-        // 페이스북 유저 프로필조회 토큰 발급
-        apiURL = "https://graph.facebook.com/me?access_token=" + authToken;
-        responseBody = ApiRequestUtils.get(apiURL, new HashMap<>());
-        obj = parser.parse(responseBody);
-        responseJson = (JSONObject) obj;
-        String USER_ID = responseJson.get("id").toString();
+            String authToken = responseJson.get("access_token").toString();
 
-        // 페이스북 유저 프로필조회 api
-        apiURL = "https://graph.facebook.com/" + USER_ID + "?fields=name,email&access_token=" + authToken;
-        responseBody = ApiRequestUtils.get(apiURL, new HashMap<>());
-        Object userInfo = parser.parse(responseBody);
-        System.out.println(userInfo);
-        JSONObject userInfoJson = (JSONObject) userInfo;
+            // 페이스북 유저 프로필조회 토큰 발급
+            // Required Variable : access_token
+            apiURL = "https://graph.facebook.com/me"
+                    + "?access_token=" + authToken;
+            responseBody = ApiRequestUtils.get(apiURL, new HashMap<>());
+
+            obj = parser.parse(responseBody);
+            responseJson = (JSONObject) obj;
+            String USER_ID = responseJson.get("id").toString();
+
+            // 페이스북 유저 프로필조회 api
+            // Required Variable : fields, access_token
+            apiURL = "https://graph.facebook.com/" + USER_ID
+                    + "?fields=name,email"
+                    + "&access_token=" + authToken;
+            responseBody = ApiRequestUtils.get(apiURL, new HashMap<>());
+            Object userInfo = parser.parse(responseBody);
+            userInfoJson = (JSONObject) userInfo;
+
+            USERNAME = userInfoJson.get("email").toString();
+            NAME = userInfoJson.get("name").toString();
+            SNS_RESPONSE_ID = userInfoJson.get("id").toString();
+        } catch (ParseException e) {
+            throw new CustomApiResponseException("요청 응답이 올바르지 않습니다.");
+        }
 
         UserEntity entity = UserEntity.builder()
-            .id(UUID.randomUUID())
-            .username(userInfoJson.get("email").toString())
-            .name(userInfoJson.get("name").toString())
-            .roles("ROLE_USER")
-            .snsType("facebook")
-            .snsResponseId(userInfoJson.get("id").toString())
-            .createdAt(CustomDateUtils.getCurrentDateTime())
-            .updatedAt(CustomDateUtils.getCurrentDateTime())
-            .build();
-        
+                .id(UUID.randomUUID())
+                .username(USERNAME)
+                .name(NAME)
+                .roles("ROLE_USER")
+                .snsType("facebook")
+                .snsResponseId(SNS_RESPONSE_ID)
+                .createdAt(CustomDateUtils.getCurrentDateTime())
+                .updatedAt(CustomDateUtils.getCurrentDateTime())
+                .build();
+
         UserEntity duplicatedUser = userService.searchDuplicatedUserBySnsTypeAndSnsResponseId("facebook", entity.getSnsResponseId());
     
         // sns_type이 facebook이면서, sns_response_id와 동일한 값이 존재하지 않는다면 회원가입
@@ -287,32 +349,14 @@ public class SocialLoginBusinessService {
             entity = duplicatedUser;
         }
         
-        try {
-            this.createAccessToken(response, entity);
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+        // 우리 사이트 access token, refresh token 생성
+        UUID refreshTokenId = UUID.randomUUID();
+        this.createAccessToken(response, entity, refreshTokenId);
+        this.createRefreshToken(entity, refreshTokenId);
     }
 
-    private void createAccessToken(HttpServletResponse response, UserEntity user) throws IOException {
-        UUID refreshTokenId = UUID.randomUUID();
+    private void createAccessToken(HttpServletResponse response, UserEntity user, UUID refreshTokenId) throws IOException {
         String accessToken = AuthTokenUtils.getJwtAccessToken(user, refreshTokenId);
-        
-        // Refresh Token 저장
-        String refreshToken = AuthTokenUtils.getJwtRefreshToken(user);
-        RefreshTokenEntity refreshTokenEntity = RefreshTokenEntity.builder()
-            .id(refreshTokenId)
-            .userId(user.getId())
-            .refreshToken(refreshToken)
-            .createdAt(CustomDateUtils.getCurrentDateTime())
-            .updatedAt(CustomDateUtils.getCurrentDateTime())
-            .build();
-        refreshTokenRepository.save(refreshTokenEntity);
-
-        // 초과 발급된 리프레시 토큰 삭제
-        Integer ALLOWED_ACCESS_COUNT = 3;
-        refreshTokenRepository.deleteOldRefreshTokenForUser(user.getId().toString(), ALLOWED_ACCESS_COUNT);
 
         // Access Token 발급
         ResponseCookie accessTokenCookie = ResponseCookie.from("ac_token", accessToken).path("/")
@@ -333,5 +377,22 @@ public class SocialLoginBusinessService {
         response.setContentType(MediaType.APPLICATION_JSON.toString());
         response.getWriter().write(oms);
         response.getWriter().flush();
+    }
+
+    private void createRefreshToken(UserEntity user, UUID refreshTokenId) {
+        // Refresh Token 저장
+        String refreshToken = AuthTokenUtils.getJwtRefreshToken(user);
+        RefreshTokenEntity refreshTokenEntity = RefreshTokenEntity.builder()
+            .id(refreshTokenId)
+            .userId(user.getId())
+            .refreshToken(refreshToken)
+            .createdAt(CustomDateUtils.getCurrentDateTime())
+            .updatedAt(CustomDateUtils.getCurrentDateTime())
+            .build();
+        refreshTokenRepository.save(refreshTokenEntity);
+
+        // 초과 발급된 리프레시 토큰 삭제
+        Integer ALLOWED_ACCESS_COUNT = 3;
+        refreshTokenRepository.deleteOldRefreshTokenForUser(user.getId().toString(), ALLOWED_ACCESS_COUNT);
     }
 }
