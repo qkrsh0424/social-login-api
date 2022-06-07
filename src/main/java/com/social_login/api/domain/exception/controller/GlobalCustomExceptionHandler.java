@@ -5,7 +5,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import com.social_login.api.config.exception.RefererException;
 import com.social_login.api.domain.exception.CustomApiResponseException;
 import com.social_login.api.domain.exception.CustomConflictErrorException;
 import com.social_login.api.domain.exception.CustomNotMatchedFormatException;

@@ -24,7 +24,6 @@ public class SignupController {
         Message message = new Message();
 
         signupBusinessService.signup(signupDto);
-
         message.setStatus(HttpStatus.OK);
         message.setMessage("success");
         return new ResponseEntity<>(message, message.getStatus());

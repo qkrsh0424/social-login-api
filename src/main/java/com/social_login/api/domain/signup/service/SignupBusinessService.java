@@ -7,6 +7,7 @@ import com.social_login.api.domain.signup.dto.SignupDto;
 import com.social_login.api.domain.user.entity.UserEntity;
 import com.social_login.api.domain.user.service.UserService;
 import com.social_login.api.utils.CustomDateUtils;
+import com.social_login.api.utils.DataFormatUtils;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,10 @@ public class SignupBusinessService {
     private final UserService userService;
 
     public void signup(SignupDto signupDto) {
+        // 아이디 & 비밀번호 형식 체크
+        DataFormatUtils.checkEmailFormat(signupDto.getUsername());
+        DataFormatUtils.checkPasswordFormat(signupDto.getPassword());
+
         // 아이디 중복 체크
         if (userService.isDuplicatedUsername(signupDto.getUsername())) {
             throw new CustomConflictErrorException("중복된 아이디입니다. 수정 후 다시 시도해주세요.");
