@@ -29,8 +29,8 @@ public class LogoutController {
             .path("/")
             .sameSite("Strict")
             .domain(CustomCookieInterface.COOKIE_DOMAIN)
-            .maxAge(0)
             .secure(CustomCookieInterface.SECURE)
+            .maxAge(0)
             .build();
         response.addHeader(HttpHeaders.SET_COOKIE, accessToken.toString());
 

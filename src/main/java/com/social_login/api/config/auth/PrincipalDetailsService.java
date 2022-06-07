@@ -23,7 +23,7 @@ public class PrincipalDetailsService implements UserDetailsService {
         if(userOpt.isPresent()) {
             return new PrincipalDetails(userOpt.get());
         } else {
-            throw new UsernameNotFoundException("아이디 또는 패스워드를 확인해 주세요.");
+            throw new UsernameNotFoundException("입력한 아이디 및 패스워드를 확인해 주세요.");
         }
     }
 }

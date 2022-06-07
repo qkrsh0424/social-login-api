@@ -21,16 +21,16 @@ public class CsrfTokenBusinessService {
 
         ResponseCookie csrfJwt = ResponseCookie.from("csrf_jwt", csrfJwtToken)
             .httpOnly(true)
-            // .domain(CustomCookieInterface.COOKIE_DOMAIN)
-            // .secure(true)
+            .domain(CustomCookieInterface.COOKIE_DOMAIN)
+            .secure(CustomCookieInterface.SECURE)
             .sameSite("Strict")
             .path("/")
             .maxAge(CustomCookieInterface.CSRF_TOKEN_COOKIE_EXPIRATION)
             .build();
 
         ResponseCookie csrfToken = ResponseCookie.from("csrf_token", csrfTokenId)
-                // .domain(CustomCookieInterface.COOKIE_DOMAIN)
-                // .secure(true)
+                .domain(CustomCookieInterface.COOKIE_DOMAIN)
+                .secure(CustomCookieInterface.SECURE)
                 .sameSite("Strict")
                 .path("/")
                 .maxAge(CustomCookieInterface.CSRF_TOKEN_COOKIE_EXPIRATION)

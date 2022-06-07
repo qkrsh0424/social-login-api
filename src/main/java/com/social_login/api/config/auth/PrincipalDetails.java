@@ -2,7 +2,6 @@ package com.social_login.api.config.auth;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.UUID;
 
 import com.social_login.api.domain.user.entity.UserEntity;
 

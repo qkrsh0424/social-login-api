@@ -23,8 +23,10 @@ public class SecurityExceptionHandlerFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
         } catch (RefererException e) {
             errorMessage(response, HttpStatus.FORBIDDEN, "invalid_referer", e.getMessage());
+            return;
         } catch (CsrfException e) {
             errorMessage(response, HttpStatus.FORBIDDEN, "invalid_csrf", e.getMessage());
+            return;
         }
     }
 

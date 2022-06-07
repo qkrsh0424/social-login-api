@@ -41,8 +41,8 @@ public class SignupBusinessService {
                 .name(signupDto.getName())
                 .roles("ROLE_USER")
                 .snsType("piaar")
-                .updatedAt(CustomDateUtils.getCurrentDateTime())
                 .createdAt(CustomDateUtils.getCurrentDateTime())
+                .updatedAt(CustomDateUtils.getCurrentDateTime())
                 .build();
         
         userService.saveAndModify(userEntity);

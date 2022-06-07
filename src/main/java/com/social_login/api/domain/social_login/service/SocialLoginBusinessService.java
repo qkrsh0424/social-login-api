@@ -86,7 +86,7 @@ public class SocialLoginBusinessService {
             USERNAME = userInfoJson.get("email").toString();
             NAME = userInfoJson.get("name").toString();
             SNS_RESPONSE_ID = userInfoJson.get("id").toString();
-        } catch (ParseException e) {
+        } catch (ParseException | NullPointerException e) {
             throw new CustomApiResponseException("요청 응답이 올바르지 않습니다.");
         }
 
@@ -162,7 +162,7 @@ public class SocialLoginBusinessService {
             USERNAME = userInfoJson.get("email").toString();
             NAME = profileInfoJson.get("nickname").toString();
             SNS_RESPONSE_ID = responseJson.get("id").toString();
-        } catch (ParseException e) {
+        } catch (ParseException | NullPointerException e) {
             throw new CustomApiResponseException("요청 응답이 올바르지 않습니다.");
         }
 
@@ -239,7 +239,7 @@ public class SocialLoginBusinessService {
             USERNAME = responseJson.get("email").toString();
             NAME = responseJson.get("name").toString();
             SNS_RESPONSE_ID = responseJson.get("id").toString();
-        } catch (ParseException e) {
+        } catch (ParseException | NullPointerException e) {
             throw new CustomApiResponseException("요청 응답이 올바르지 않습니다.");
         }
 
@@ -325,7 +325,7 @@ public class SocialLoginBusinessService {
             USERNAME = userInfoJson.get("email").toString();
             NAME = userInfoJson.get("name").toString();
             SNS_RESPONSE_ID = userInfoJson.get("id").toString();
-        } catch (ParseException e) {
+        } catch (ParseException | NullPointerException e) {
             throw new CustomApiResponseException("요청 응답이 올바르지 않습니다.");
         }
 

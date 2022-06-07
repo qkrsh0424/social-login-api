@@ -14,7 +14,7 @@ public class JwtAuthenticationProvider implements AuthenticationProvider {
     private final PrincipalDetailsService principalDetailsService;
     private final PasswordEncoder passwordEncoder;
 
-    // 실제 아이디&비밀번호 검증
+    // 실제 아이디 & 비밀번호 검증
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
         UsernamePasswordAuthenticationToken token = (UsernamePasswordAuthenticationToken) authentication;
@@ -26,7 +26,7 @@ public class JwtAuthenticationProvider implements AuthenticationProvider {
 
         // 비밀번호 비교
         if (!passwordEncoder.matches(fullPassword, principalDetails.getPassword())) {
-            throw new BadCredentialsException("아이디 또는 패스워드를 확인해 주세요.");
+            throw new BadCredentialsException("입력한 아이디 및 패스워드를 확인해 주세요.");
         }
 
         return new UsernamePasswordAuthenticationToken(principalDetails, fullPassword, principalDetails.getAuthorities());

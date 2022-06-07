@@ -25,7 +25,7 @@ public class CsrfAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
-        // GET 메소드 통과
+        // GET 메소드는 CSRF필터 통과
         if (request.getMethod().equals("GET")) {
             chain.doFilter(request, response);
             return;
@@ -34,14 +34,12 @@ public class CsrfAuthenticationFilter extends OncePerRequestFilter {
         try {
             // 일종의 저장소
             Cookie csrfJwt = WebUtils.getCookie(request, "csrf_jwt");
-
             String csrfJwtToken = csrfJwt.getValue();
             // 실제 CSRF 토큰 값
             String csrfToken = request.getHeader("X-XSRF-TOKEN");
-
             Claims claims = Jwts.parser().setSigningKey(CsrfTokenUtils.getCsrfJwtSecret()).parseClaimsJws(csrfJwtToken).getBody();
 
-            // Cookie값과 csrf설정 헤더값이 동일하지 않다면
+            // Cookie값과 CSRF토큰 값이 동일하지 않다면
             if (!claims.get("csrfId").equals(csrfToken)) {
                 throw new CsrfException("This is invalid Csrf token.");
             } else {
