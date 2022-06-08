@@ -27,6 +27,9 @@ public class SecurityExceptionHandlerFilter extends OncePerRequestFilter {
         } catch (CsrfException e) {
             errorMessage(response, HttpStatus.FORBIDDEN, "invalid_csrf", e.getMessage());
             return;
+        } catch (Exception e) {
+            errorMessage(response, HttpStatus.INTERNAL_SERVER_ERROR, "undefined", "undefined error.");
+            return;
         }
     }
 

@@ -24,7 +24,6 @@ public class RefererAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
-
                 // GET 메소드 Referer 체크 통과
                 if (request.getMethod().equals("GET")) {
                     filterChain.doFilter(request, response);

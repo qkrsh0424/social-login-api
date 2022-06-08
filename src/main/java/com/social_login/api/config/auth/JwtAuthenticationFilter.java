@@ -53,6 +53,7 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
         try{
             UserEntity user = new ObjectMapper().readValue(request.getInputStream(), UserEntity.class);
             UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(user.getUsername(), user.getPassword());
+            this.setDetails(request, authToken);
             return this.getAuthenticationManager().authenticate(authToken);
         } catch (IOException e) {
             throw new AuthenticationServiceException("입력한 아이디 및 패스워드를 확인해 주세요.");
